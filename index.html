@@ -5,11 +5,69 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/css/reset.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.css">
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
+
   </head>
   <body class="mixpanel-platform-body">
-    <h1>Hello, World!</h1>
+    <div class="mixpanel-platform-section">
+      <div id="dateSelect"></div><br clear="all" />
+      <div id="graph"></div>
+    </div>
+    <div id="table"></div>
+    
     <script>
-      // Run queries and display results here
+    
+    /*
+    TODOs:
+    - would be cool to have a stacked bar graph with property segmentation
+    */
+    
+      //var eventSelect = $('#eventSelect').MPEventSelect();
+      //var propSelect  = $('#propSelect').MPPropertySelect();
+      var dateSelect  = $('#dateSelect').MPDatepicker();
+      var eventGraph  = $('#graph').MPChart({chartType: 'bar'});
+
+        // grabs values 
+          //  propName  = propSelect.MPPropertySelect('value'),
+           var dateRange = dateSelect.MPDatepicker('value');
+           var propName = null;
+      
+  function runQuery(){
+          // get top 10 events 
+          var topEventParams = {limit:10};
+          MP.api.topEvents(topEventParams).done(function(results) {
+            //console.log('top events\n', results.values());
+            // for each top 10 event...
+            var data = {};
+            for(var key in results.values())
+            {
+              // if not account created event <- look up all unique events in date range that have "last event "= account created (in this case bank == wells)
+              if(results.values()[key] != 'Create Account')
+              {
+                // for each event, get the unique count in date range with prop last page == whatever
+                var params = {
+                  from: dateRange['from'],
+                  to: dateRange['to'],
+                  type: 'unique',
+                  
+                  'where':'properties["Bank"] == "Wells Fargo"'
+              };
+                var tempObj = MP.api.segment(results.values()[key], null ,params).done(function(results) {
+                  //console.log(results.values());
+                  eventGraph.MPChart('addSeries', results.values());
+                });
+                console.log(tempObj);
+                data[results.values()[key]] = tempObj[results.values()[key]];
+              }
+            }
+          });
+  }
+          dateSelect.on('change', function(e, dates) {  
+            runQuery();
+          });
+
+    runQuery();
     </script>
+    
+    
   </body>
 </html>
